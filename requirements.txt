@@ -1,0 +1,3 @@
+earthaccess
+netCDF4
+numpy
