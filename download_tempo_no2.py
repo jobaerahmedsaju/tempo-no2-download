@@ -43,7 +43,7 @@ def get_fill_value(var):
     return nc.default_fillvals[f'{dtype.kind}{dtype.itemsize}']
 
 
-def copy_group_vars(src_group, dst_group, var_list, spatial_mask):
+def copy_group_vars(src_group, dst_group, var_list, spatial_mask, root):
     """Copy var_list from src_group to dst_group; mask out-of-bbox pixels to fill_value."""
     for attr in src_group.ncattrs():
         dst_group.setncattr(attr, src_group.getncattr(attr))
@@ -53,8 +53,8 @@ def copy_group_vars(src_group, dst_group, var_list, spatial_mask):
             continue
         var = src_group.variables[vname]
         for dname, dlen in zip(var.dimensions, var.shape):
-            if dname not in dst_group.dimensions:
-                dst_group.createDimension(dname, dlen)
+            if dname not in root.dimensions:
+                root.createDimension(dname, dlen)  # dimensions at file root, as in V03
 
         spatial_var = 'mirror_step' in var.dimensions and 'xtrack' in var.dimensions
         fill_value = get_fill_value(var) if spatial_var else getattr(var, '_FillValue', None)
@@ -137,9 +137,9 @@ def subset_one(downloaded_file):
                 product_group = dst.createGroup('product')
                 support_group = dst.createGroup('support_data')
 
-                copy_group_vars(src.groups['geolocation'], geo_group, geo_vars, spatial_mask)
-                copy_group_vars(src.groups['product'], product_group, product_vars, spatial_mask)
-                copy_group_vars(src.groups['support_data'], support_group, support_vars, spatial_mask)
+                copy_group_vars(src.groups['geolocation'], geo_group, geo_vars, spatial_mask, dst)
+                copy_group_vars(src.groups['product'], product_group, product_vars, spatial_mask, dst)
+                copy_group_vars(src.groups['support_data'], support_group, support_vars, spatial_mask, dst)
     except Exception:
         if os.path.exists(output_file):
             os.remove(output_file)
